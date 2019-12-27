@@ -1,0 +1,146 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="maximum-scale=1.0, minimum-scale=1.0, user-scalable=0, initial-scale=1.0, width=device-width"/>
+    <meta name="format-detection" content="telephone=no, email=no, date=no, address=no">
+    <title>WinA</title>
+    <link rel="stylesheet" type="text/css" href="css/api.css"/>
+    <link rel="stylesheet" type="text/css" href="css/box.css"/>
+    <script type="text/javascript" src="script/public.js"></script>
+    <style>
+    	p{
+    		color:#999;
+    		padding:5px;
+    	}
+
+    </style>
+    <script type="text/javascript">
+	    
+		var M1Card = null;
+
+		apiready = function(){
+	    	M1Card = api.require('readCard');
+	    	//*******************安卓事件********************
+	    	api.addEventListener({
+	    	name:'resume'
+	    	},function(ret,err){
+	    	//alert("resume");
+	    	resumeJS();
+	    	});
+	    	api.addEventListener({
+	    	name:'pause'
+	    	},function(ret,err){
+	    	pauseJS();
+	    	});
+//	    	api.addEventListener({
+//            name:'appintent'
+ //           },function(ret,err){
+//            //alert("intent");
+//            var appParam = ret.appParam;
+ //           if(api.systemType == 'ios'){
+//             var iosUrl = ret.iosUrl;
+//            }else {
+ //           var sourceAppId = ret.sourceAppId;
+ //           newIntentJS(appParam);//最后appParam 里获取 NFC Tag 获取不到，弃用
+ //           }
+ //           });
+	    	//********************add********************
+	    }
+
+	 //********************安卓生命周期********************
+	function resumeJS(){
+	        M1Card.resumeJS({
+	        },function(ret, err){
+	        	<!--alert(JSON.stringify(ret));-->
+	        });
+		}
+	function pauseJS(){
+	        M1Card.pauseJS({
+	        },function(ret, err){
+	        	<!--alert(JSON.stringify(ret));-->
+	        });
+		}
+		//弃用
+	 function newIntentJS(appParam){
+	        M1Card.newIntentJS({
+	        appParam:appParam
+	        },function(ret, err){
+	        	alert(JSON.stringify(ret));
+	        });
+		}
+	//********************add********************
+		//初始化 准备读用户卡
+		 function initM1(){
+	        M1Card.init({
+	        },function(ret, err){
+	        	alert(JSON.stringify(ret));
+	        });
+		}
+			 function checkPos(){
+	        M1Card.checkPos({
+	        },function(ret, err){
+	        	alert(JSON.stringify(ret));
+
+	        });
+		}
+		//读卡0 A
+		 function readCard(){
+
+	        M1Card.readCard({
+	        sector:'13',
+	        key:'ffffffffffff'
+	        },function(ret, err){
+	        	alert(JSON.stringify(ret));
+	        	if(ret.status||ret.msg!=null){
+	        	checkPos();
+	        	}
+	        });
+		}
+		//开卡2  B
+		 function createCard(){
+	        M1Card.createCard({
+	        sector:'13',
+	        key:'ffffffffffff'
+	        },function(ret, err){
+	        	alert(JSON.stringify(ret));
+	        });
+		}
+		//写卡1 A
+		function writeCard(){
+
+	        M1Card.writeCard({
+	        sector:'13',
+	        data:'188898988888',
+	        key:'ffffffffffff'
+	        },function(ret, err){
+	        	alert(JSON.stringify(ret));
+	        });
+		}
+		//销卡3 B
+			function cleanCard(){
+
+	        M1Card.cleanCard({
+	        sector:'13',
+	        key:'ffffffffffff'
+	        },function(ret, err){
+	        	alert(JSON.stringify(ret));
+	        });
+		}
+    </script>
+</head>
+<body>
+<div id="wrap">
+    <div id="main">
+        <br>
+        <div class="clickbtn" tapmode="active" onclick="initM1()">初始化</div>
+       <br/>
+        <div class="clickbtn" tapmode="active" onclick="createCard()">开卡</div>
+        <div class="clickbtn" tapmode="active" onclick="readCard()">读卡</div>
+        <div class="clickbtn" tapmode="active" onclick="writeCard()">写卡</div>
+        <div class="clickbtn" tapmode="active" onclick="cleanCard()">销卡</div>
+    </div>
+</div>
+</body>
+</html>

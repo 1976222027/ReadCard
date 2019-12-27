@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.apicloud.myReadCard">
+
+    <uses-permission android:name="com.sunmi.perm.LED" />
+    <uses-permission android:name="com.sunmi.perm.MSR" />
+    <uses-permission android:name="com.sunmi.perm.ICC" />
+    <uses-permission android:name="com.sunmi.perm.PINPAD" />
+    <uses-permission android:name="com.sunmi.perm.SECURITY" />
+    <uses-permission android:name="com.sunmi.perm.CONTACTLESS_CARD" />
+    <uses-permission android:name="android.permission.NFC" />
+    <!-- 要求当前设备必须要有NFC芯片 -->
+    <uses-feature
+        android:name="android.hardware.nfc" android:required="true" />
+
+    <application
+        android:allowBackup="true"
+        android:supportsRtl="true"
+
+        tools:ignore="GoogleAppIndexingWarning">
+        <activity
+            android:name="com.apicloud.myReadCard.ka.ReadActivity"
+            android:theme="@style/myTransparent" />
+        <activity
+            android:name="com.apicloud.myReadCard.pos.InitPosActivity"
+            android:theme="@style/myTransparent"></activity>
+        <activity
+            android:name="com.apicloud.myReadCard.pos.M1Activity"
+            android:theme="@style/myTransparent"></activity>
+
+
+    </application>
+
+</manifest>

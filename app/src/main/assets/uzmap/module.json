@@ -1,0 +1,9 @@
+{
+	"modules":[
+		{
+			"name":"readCard",
+//			"class":"com.apicloud.moduleReadCard.ReadCardss"
+			"class":"com.apicloud.myReadCard.ReadCardss"
+		}
+	]
+}
