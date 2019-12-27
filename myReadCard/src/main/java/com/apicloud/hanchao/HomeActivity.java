@@ -35,27 +35,23 @@ public final class HomeActivity extends UZAppActivity {
     public void getNFCTagListener(NFCInstans getTagListener) {
         this.nfcInstans = getTagListener;
     }
-
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        nfcInstans.getIntent(intent);//接口
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         instans = this;
 
     }
-
     @Override
     protected void onDestroy() {
         super.onDestroy();
         nfcInstans.getDestory();
     }
-
-
-    @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        nfcInstans.getIntent(intent);//接口
-    }
-
+    
     @Override
     protected final boolean isFromNativeSDK() {
         return false;
