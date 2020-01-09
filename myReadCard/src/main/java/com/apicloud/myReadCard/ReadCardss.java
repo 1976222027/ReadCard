@@ -4,6 +4,7 @@ import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.nfc.NfcAdapter;
+import android.nfc.Tag;
 import android.nfc.tech.MifareClassic;
 import android.nfc.tech.NfcA;
 import android.nfc.tech.NfcF;
@@ -17,14 +18,16 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.apicloud.hanchao.HomeActivity;
-import com.apicloud.hanchao.MyApplication;
-import com.apicloud.myReadCard.ka.NfcReadHelper;
-import com.apicloud.myReadCard.pos.M1Activity;
 import com.apicloud.myReadCard.utils.ByteUtil;
+import com.apicloud.myReadCard.utils.Constant;
 import com.apicloud.myReadCard.utils.LogUtil;
+import com.apicloud.myReadCard.utils.MyApplication;
+import com.apicloud.myReadCard.utils.NfcReadHelper;
 import com.sunmi.pay.hardware.aidlv2.AidlConstantsV2;
 import com.sunmi.pay.hardware.aidlv2.readcard.CheckCardCallbackV2;
+import com.uzmap.pkg.EntranceActivit;
+import com.uzmap.pkg.EntranceActivity;
+import com.uzmap.pkg.NFCInstans;
 import com.uzmap.pkg.uzcore.UZWebView;
 import com.uzmap.pkg.uzcore.uzmodule.UZModule;
 import com.uzmap.pkg.uzcore.uzmodule.UZModuleContext;
@@ -33,6 +36,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -47,13 +51,13 @@ public class ReadCardss extends UZModule implements NFCInstans {
     public ReadCardss(UZWebView webView) {
         super(webView);
         //注册监听 new intent
-        LogUtil.e("webview","pohene");
+        LogUtil.e("webview", "pohene");
     }
 
     /**
      * 公共数据
      */
-    private int type = 0, sector = -1;//扇区
+    private int type = 0, sector = 0;//扇区
     private String keyStr = ByteUtil.baseKeyB, datas = "";//默认密码
     private int keyType;    // 密钥类型，0表示KEY A、1表示 KEY B
     private byte[] keyBytes;
@@ -71,13 +75,11 @@ public class ReadCardss extends UZModule implements NFCInstans {
     private NfcAdapter adapter;
 
     public void phone() {
+        //这里才初始化 resume 当时还没有adapter so 初始化后还要
         adapter = NfcAdapter.getDefaultAdapter(getContext());
         //读卡
-        mPendingIntent = PendingIntent.getActivity(
-                getContext(),
-                0,
-                new Intent(getContext(), getContext().getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
-                0);
+        mPendingIntent = PendingIntent.getActivity(getContext(), 0,
+                new Intent(getContext(), getContext().getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0);
         IntentFilter ndef = new IntentFilter(NfcAdapter.ACTION_TAG_DISCOVERED);//intent nfc类型
         try {
             ndef.addDataType("*/*");
@@ -103,6 +105,8 @@ public class ReadCardss extends UZModule implements NFCInstans {
             // 根据包名打开对应的设置界面
             startActivityForResult(intent, 102);
         } else if (adapter.isEnabled()) {
+            //开启前台调度系统
+            adapter.enableForegroundDispatch(getContext(), mPendingIntent, intentFiltersArray, techListsArray);
             JSONObject ret = new JSONObject();
             try {
                 ret.put("status", true);
@@ -122,7 +126,7 @@ public class ReadCardss extends UZModule implements NFCInstans {
      * @param moduleContext
      */
     UZModuleContext initContext;
-    private boolean isPos=false;
+    private boolean isPos = false;
     private boolean isInitPhone = false;
     private boolean isInitPos = false;
 
@@ -134,11 +138,11 @@ public class ReadCardss extends UZModule implements NFCInstans {
             isPos = true;
         } else {
             isPos = false;
+            //初始化 监听newIntent
+            EntranceActivit.instans.getActivityListener(this);
         }
-//        isInitPhone = false;
-//        isInitPos = false;
+//        isInitPhone = false;//        isInitPos = false;
 
-        HomeActivity.instans.getNFCTagListener(this);
 
         initContext = moduleContext;
         andContext = moduleContext;
@@ -148,10 +152,13 @@ public class ReadCardss extends UZModule implements NFCInstans {
             initPos();//初始化操作
         }
     }
+
     UZModuleContext andContext;//读卡后 回调用
     UZModuleContext prepareContext;
+
     /**
      * 0读卡数据
+     *
      * @param moduleContext
      */
     public void jsmethod_readCard(UZModuleContext moduleContext) {
@@ -169,20 +176,22 @@ public class ReadCardss extends UZModule implements NFCInstans {
         readAndWrite(moduleContext);
     }
 
-    //2开卡FCF->KCK
+    //2开卡更换秘钥FCF->KCK
     public void jsmethod_createCard(UZModuleContext moduleContext) {
         type = 2;
         readAndWrite(moduleContext);
     }
+
     //检测 pos
     public void jsmethod_checkPos(UZModuleContext moduleContext) {
-        if (isPos){
+        if (isPos) {
             checkCard();
         }
     }
 
     /**
      * 控制位7f078869 控制：
+     *
      * @1数据块块012均可用KeyA/B读写
      * @2密码块3均不可读，仅KeyB能写 综合代码 type 3销卡 2开卡 1写卡 0读卡
      * 初始化、读、写卡 用keyA认证
@@ -191,7 +200,7 @@ public class ReadCardss extends UZModule implements NFCInstans {
     public void readAndWrite(UZModuleContext moduleContext) {
         prepareContext = moduleContext;
         if (!isPos) {
-            if (isInitPhone) {
+            if (isInitPhone && adapter.isEnabled()) {
                 //type 3销卡 2开卡 1写卡 0读卡
                 readCard(type, moduleContext);
             } else {
@@ -234,7 +243,7 @@ public class ReadCardss extends UZModule implements NFCInstans {
     private void readCard(int type, UZModuleContext moduleContext) {
         andContext = moduleContext;
         String keyAStr = moduleContext.optString("key", "");
-        String block = moduleContext.optString("sector","0");//扇区
+        String block = moduleContext.optString("sector", "0");//扇区
         if (type == 1) {//写卡//写卡数据
             String data = moduleContext.optString("data", "");
             if (!TextUtils.isEmpty(data)) {
@@ -253,7 +262,7 @@ public class ReadCardss extends UZModule implements NFCInstans {
             return;
         }
         if (!keyAStr.isEmpty()) {
-            keyStr = keyAStr;
+            keyStr = ByteUtil.psw2HexStr(keyAStr);//6->12
         }
         sector = Integer.parseInt(block);
         if (sector > 15 || sector < 0) {
@@ -267,6 +276,12 @@ public class ReadCardss extends UZModule implements NFCInstans {
             }
             return;
         }
+//        Intent intent = new Intent(getContext(), ReadActivity.class);
+//        intent.putExtra("block", sector);
+//        intent.putExtra("key", keyStr);
+//        intent.putExtra("type", type);
+//        intent.putExtra("data", datas);
+//        startActivityForResult(intent, 100);
     }
 
     /**
@@ -274,7 +289,7 @@ public class ReadCardss extends UZModule implements NFCInstans {
      * connectPayService()
      */
     public void initPos() {
-        if (isInitPos){
+        if (isInitPos) {
             JSONObject ret = new JSONObject();
             try {
                 ret.put("status", true);
@@ -284,12 +299,13 @@ public class ReadCardss extends UZModule implements NFCInstans {
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-        }else {
-        mSMPayKernel = SunmiPayKernel.getInstance();
-        mSMPayKernel.initPaySDK(getContext(), mConnectCallback);
+        } else {
+            mSMPayKernel = SunmiPayKernel.getInstance();
+            mSMPayKernel.initPaySDK(getContext(), mConnectCallback);
 //            checkCard();//开启监测卡
-             }
+        }
     }
+
     /**
      * 连接状态回调
      */
@@ -317,6 +333,7 @@ public class ReadCardss extends UZModule implements NFCInstans {
                 e.printStackTrace();
             }
         }
+
         @Override
         public void onDisconnectPaySDK() {
             LogUtil.e(Constant.TAG, "onDisconnectPaySDK");
@@ -333,6 +350,7 @@ public class ReadCardss extends UZModule implements NFCInstans {
         }
 
     };
+
     /**
      * 使用pos读卡
      */
@@ -340,8 +358,9 @@ public class ReadCardss extends UZModule implements NFCInstans {
         andContext = moduleContext;
         String keyAStr = moduleContext.optString("key", "");
         String block = moduleContext.optString("sector");
-        if (type==1){
-            datas = moduleContext.optString("data", "");}//写卡数据
+        if (type == 1) {
+            datas = moduleContext.optString("data", "");
+        }//写卡数据
         if (keyAStr.isEmpty()) {
             JSONObject ret = new JSONObject();
             try {
@@ -355,7 +374,7 @@ public class ReadCardss extends UZModule implements NFCInstans {
         }
 
         if (!keyAStr.isEmpty()) {
-            keyStr = keyAStr;
+            keyStr = ByteUtil.psw2HexStr(keyAStr);//6->12hex
         }
         sector = Integer.parseInt(block);
         if (sector > 15 || sector < 0) {
@@ -369,15 +388,7 @@ public class ReadCardss extends UZModule implements NFCInstans {
             }
             return;
         }
-        //POS读卡
-//        Intent intent = new Intent(getContext(), M1Activity.class);
-//        intent.putExtra("block", sector);
-//        intent.putExtra("key", keyStr);
-////        intent.putExtra("pos", pos);//A/B
-//        intent.putExtra("type", type);
-//        intent.putExtra("data", datas);
-//        startActivityForResult(intent, 600);//卡片认证
-//        getContext().overridePendingTransition(0, 0);
+
     }
 
 
@@ -391,16 +402,16 @@ public class ReadCardss extends UZModule implements NFCInstans {
         int startBlockNo = sector * 4;//sector扇区起始块0
         if (type == 2) {//开卡
             try {
-                keyType=1;//KeyB验证
+                keyType = 1;//KeyB验证
                 result = MyApplication.mReadCardOptV2.mifareAuth(keyType, startBlockNo, MifareClassic.KEY_DEFAULT) == 0;
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
-        } else if(type == 3) {
-            keyType=1;//KeyB验证
+        } else if (type == 3) {
+            keyType = 1;//KeyB验证
             result = m1Auth(keyType, startBlockNo, keyBytes);
-        }else {
-            keyType=0;//KeyA验证  读卡写卡
+        } else {
+            keyType = 0;//KeyA验证  读卡写卡
             result = m1Auth(keyType, startBlockNo, keyBytes);
         }
         if (result) {
@@ -434,7 +445,7 @@ public class ReadCardss extends UZModule implements NFCInstans {
                     LogUtil.e(Constant.TAG, "2outData:" + s2);
                 }
                 //记录刷卡时间
-                m1WriteBlock(startBlockNo + 1,  ByteUtil.String2Byte(System.currentTimeMillis()+""));//字节
+                m1WriteBlock(startBlockNo + 1, ByteUtil.String2Byte(System.currentTimeMillis() + ""));//字节
 
                 String data0 = s0.trim();
                 String data1 = ByteUtil.timeStamp2Date(s1.trim());
@@ -443,8 +454,8 @@ public class ReadCardss extends UZModule implements NFCInstans {
                 try {
                     ret.put("status", true);
                     ret.put("data0", data0.trim());
-                    ret.put("data1", "上次刷卡:"+data1);
-                    ret.put("data2", "开卡时间:"+data2);
+                    ret.put("data1", "上次刷卡:" + data1);
+                    ret.put("data2", "开卡时间:" + data2);
                     andContext.success(ret, false);
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -463,13 +474,13 @@ public class ReadCardss extends UZModule implements NFCInstans {
                 JSONObject ret = new JSONObject();
                 try {
                     ret.put("status", true);
-                    ret.put("msg", "写卡成功:"+datas);
+                    ret.put("msg", "写卡成功:" + datas);
                     andContext.success(ret, false);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
             } else if (type == 2) {//开卡 将块3 key换掉
-                outData = ByteUtil.hexStr2Bytes(keyStr+ByteUtil.commdKeyB+keyStr);/*new byte[]{(byte) 0xff, 0x07, (byte) 0x80, (byte) 0x69,(byte) 0x11, (byte) 0x11, (byte) 0x11, (byte) 0x11, (byte) 0x11, (byte) 0x11}*/
+                outData = ByteUtil.hexStr2Bytes(keyStr + ByteUtil.commdKeyB + keyStr);/*new byte[]{(byte) 0xff, 0x07, (byte) 0x80, (byte) 0x69,(byte) 0x11, (byte) 0x11, (byte) 0x11, (byte) 0x11, (byte) 0x11, (byte) 0x11}*/
                 res = m1WriteBlock(startBlockNo + 3, outData);//字节
                 if (res >= 0 && res <= 16) {
                     String hexStr = ByteUtil.bytes2HexStr(Arrays.copyOf(outData, res));
@@ -477,7 +488,7 @@ public class ReadCardss extends UZModule implements NFCInstans {
                     s3 = ByteUtil.hexStr2Str(hexStr);
                     LogUtil.e(Constant.TAG, "3开卡:" + s3);
                 }
-                m1WriteBlock(startBlockNo + 2,  ByteUtil.String2Byte(System.currentTimeMillis()+""));//字节
+                m1WriteBlock(startBlockNo + 2, ByteUtil.String2Byte(System.currentTimeMillis() + ""));//字节
                 JSONObject ret = new JSONObject();
                 try {
                     ret.put("status", true);
@@ -490,8 +501,8 @@ public class ReadCardss extends UZModule implements NFCInstans {
 //                outData = ByteUtil.byteMerger(MifareClassic.KEY_DEFAULT, new byte[]{(byte) 0xff, 0x07, (byte) 0x80, (byte) 0x69}, MifareClassic.KEY_DEFAULT);
                 outData = ByteUtil.baseKey;
                 m1WriteBlock(startBlockNo, ByteUtil.bytes0);//字节
-                m1WriteBlock(startBlockNo + 1,  ByteUtil.bytes0);//字节
-                m1WriteBlock(startBlockNo + 2,  ByteUtil.bytes0);//字节
+                m1WriteBlock(startBlockNo + 1, ByteUtil.bytes0);//字节
+                m1WriteBlock(startBlockNo + 2, ByteUtil.bytes0);//字节
                 res = m1WriteBlock(startBlockNo + 3, outData);//字节
                 if (res >= 0 && res <= 16) {
                     String hexStr = ByteUtil.bytes2HexStr(Arrays.copyOf(outData, res));
@@ -526,21 +537,24 @@ public class ReadCardss extends UZModule implements NFCInstans {
     private void checkCard() {
         try {
 //            showHintDialog();
-            MyApplication.mReadCardOptV2.checkCard(AidlConstantsV2.CardType.MIFARE.getValue(), mCheckCardCallback, 600);//延时s？
+            MyApplication.mReadCardOptV2.checkCard(AidlConstantsV2.CardType.MIFARE.getValue(), mCheckCardCallback, 60);//延时范围1-120s
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-//监测卡
+
+    //监测卡
     private CheckCardCallbackV2 mCheckCardCallback = new CheckCardCallbackV2.Stub() {
         @Override
         public void findMagCard(Bundle bundle) throws RemoteException {
 
         }
+
         @Override
         public void findICCard(String atr) throws RemoteException {
 
         }
+
         @Override
         public void findRFCard(String uuid) throws RemoteException {
             LogUtil.e(Constant.TAG, "findRFCard:" + uuid);
@@ -548,14 +562,16 @@ public class ReadCardss extends UZModule implements NFCInstans {
             //找到卡去读
             readM1();
         }
+
         @Override
         public void onError(int code, String message) throws RemoteException {
 //            checkCard();
         }
 
     };
-//destory结束
-   void jsmethod_closeScan(){
+
+    //destory结束
+    void jsmethod_closeScan() {
         if (mSMPayKernel != null) {
             mSMPayKernel.destroyPaySDK();
         }
@@ -577,8 +593,10 @@ public class ReadCardss extends UZModule implements NFCInstans {
             readAllSector(type);
         }
     }
+
     /**
      * 验证key空
+     *
      * @return
      */
     private boolean checkParams() {
@@ -589,6 +607,7 @@ public class ReadCardss extends UZModule implements NFCInstans {
         }
         return true;
     }
+
     /**
      * m1 card auth 卡认证
      */
@@ -611,6 +630,7 @@ public class ReadCardss extends UZModule implements NFCInstans {
             return false;
         }
     }
+
     /**
      * m1 read block data
      */
@@ -624,6 +644,7 @@ public class ReadCardss extends UZModule implements NFCInstans {
         }
         return -123;
     }
+
     /**
      * 写卡
      */
@@ -637,6 +658,7 @@ public class ReadCardss extends UZModule implements NFCInstans {
         }
         return -123;
     }
+
     public void showToast(int redId) {
         showToastOnUI(getContext().getString(redId));
     }
@@ -655,13 +677,53 @@ public class ReadCardss extends UZModule implements NFCInstans {
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-      if (requestCode == 102 && resultCode == 0) {
+        if (requestCode == 100 && resultCode == 104) {
+            JSONObject ret = new JSONObject();
+            try {
+                ret.put("status", false);
+                ret.put("msg", "读取失败");
+                prepareContext.success(ret, false);
+                isInitPhone = false;
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        } else if (requestCode == 100 && resultCode == 105) {
+            String data0 = data.getStringExtra("data0");
+            String data1 = data.getStringExtra("data1");
+            String data2 = data.getStringExtra("data2");
+            data0 = ByteUtil.hexStr2Str(data0);
+            data1 = ByteUtil.hexStr2Str(data1);
+            data2 = ByteUtil.hexStr2Str(data2);
+            JSONObject ret = new JSONObject();
+            try {
+                ret.put("status", true);
+                ret.put("data0", data0);
+                ret.put("data1", data1);
+                ret.put("data2", data2);
+                prepareContext.success(ret, false);
+//                isInitPhone = false;
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        } else if (requestCode == 100 && resultCode == 106) {
+           String datas = data.getStringExtra("data");
+            JSONObject ret = new JSONObject();
+            try {
+                ret.put("status", true);
+                ret.put("msg", datas);
+                prepareContext.success(ret, false);
+//                isInitPhone = false;
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        } else if (requestCode == 102 && resultCode == 0) {
             if (adapter.isEnabled()) {
+                adapter.enableForegroundDispatch(getContext(), mPendingIntent, intentFiltersArray, techListsArray);
                 JSONObject ret = new JSONObject();
                 try {
                     ret.put("status", true);
                     ret.put("msg", "nfc已开启");
-                    initContext.success(ret, false);
+                    andContext.success(ret, false);
                     isInitPhone = true;
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -671,7 +733,7 @@ public class ReadCardss extends UZModule implements NFCInstans {
                 try {
                     ret.put("status", false);
                     ret.put("msg", "请打开nfc功能");
-                    initContext.success(ret, false);
+                    andContext.success(ret, false);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -682,20 +744,11 @@ public class ReadCardss extends UZModule implements NFCInstans {
 
     //监听 页面可见
     public void jsmethod_resumeJS(UZModuleContext moduleContext) {
-        String model = SystemProperties.get("ro.product.model");
-        Log.e("resume", "终端名字为" + model);
-//        if (model.equals("P1N") || model.equals("P1_4G") || model.equals("P2 Pro") || model.equals("P2 Lite")) {
-//            isPos = true;
-//            initPos();
-//        } else {
-//            isPos = false;
-//        }
 
         //开启前台调度系统
         if (adapter != null && isInitPhone) {
             adapter.enableForegroundDispatch(getContext(), mPendingIntent, intentFiltersArray, techListsArray);
         }
-
     }
 
     //监听页面 不可见
@@ -706,6 +759,22 @@ public class ReadCardss extends UZModule implements NFCInstans {
         }
         if (isInitPos) {
 
+        }
+    }
+
+    public void jsmethod_intentJS(UZModuleContext moduleContext) {
+        JSONObject jsonObject =moduleContext.optJSONObject("param");
+        Iterator<String> it = jsonObject.keys();
+        while(it.hasNext()){
+            String key = it.next();
+            if (key.equals(NfcAdapter.EXTRA_TAG)){
+        Intent intent = new Intent(getContext(), ReadActivity.class);
+        intent.putExtra("block", sector);
+        intent.putExtra("key", keyStr);
+        intent.putExtra("type", type);
+        intent.putExtra("data", datas);
+        startActivityForResult(intent, 100);
+            }
         }
     }
 
@@ -729,15 +798,20 @@ public class ReadCardss extends UZModule implements NFCInstans {
                 String data0 = msg.getData().getString("data0");
                 String data1 = msg.getData().getString("data1");
                 String data2 = msg.getData().getString("data2");
-                data1=ByteUtil.timeStamp2Date(data1.trim());
-                data2=ByteUtil.timeStamp2Date(data2.trim());
+                data1 = ByteUtil.timeStamp2Date(data1.trim());
+                data2 = ByteUtil.timeStamp2Date(data2.trim());
 //            data1 = ByteUtil.hexStr2Str(data1);
                 JSONObject ret = new JSONObject();
                 try {
-                    ret.put("status", true);
-                    ret.put("data0", data0.trim());
-                    ret.put("data1", "上次刷卡:"+data1);
-                    ret.put("data2", "开卡时间:"+data2);
+                    if (sector == 0) {
+                        ret.put("status", false);
+                        ret.put("data0", "初始状态");
+                    } else {
+                        ret.put("status", true);
+                        ret.put("data0", data0.trim());
+                    }
+                    ret.put("data1", "上次刷卡:" + data1);
+                    ret.put("data2", "开卡时间:" + data2);
                     andContext.success(ret, false);
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -824,6 +898,7 @@ public class ReadCardss extends UZModule implements NFCInstans {
         }
         cancelCheckCard();
     }
+
 
 
 }

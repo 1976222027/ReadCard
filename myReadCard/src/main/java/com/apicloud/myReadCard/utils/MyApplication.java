@@ -1,4 +1,4 @@
-package com.apicloud.hanchao;
+package com.apicloud.myReadCard.utils;
 
 import android.app.Application;
 import android.content.Context;
@@ -6,9 +6,6 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.util.DisplayMetrics;
 
-import com.apicloud.myReadCard.CacheHelper;
-import com.apicloud.myReadCard.Constant;
-import com.apicloud.myReadCard.utils.LogUtil;
 import com.sunmi.pay.hardware.aidlv2.emv.EMVOptV2;
 import com.sunmi.pay.hardware.aidlv2.pinpad.PinPadOptV2;
 import com.sunmi.pay.hardware.aidlv2.readcard.ReadCardOptV2;

@@ -6,7 +6,7 @@
     android:layout_height="175dp"
     android:layout_gravity="center"
     android:background="#ffffff"
-    >
+    tools:context="com.apicloud.myReadCard.ReadActivity">
 
     <ImageView
         android:layout_width="match_parent"

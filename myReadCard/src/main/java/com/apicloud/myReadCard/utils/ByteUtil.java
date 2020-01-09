@@ -10,15 +10,19 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static java.util.regex.Pattern.*;
 
 //字符串转hex byte
 public class ByteUtil {
-   public static byte[]bytes0= new byte[]{(byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte)0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00};
+    public static byte[] bytes0 = new byte[]{(byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00};
     //控制位7f078869 KeyA/B 均可读写块012  仅KeyB 能写块3均不可读
-   public static byte[] commdB =new byte[]{(byte) 0x7f, 0x07, (byte) 0x88, (byte) 0x69};//hexStr2Bytes("7f078869");
-    public static byte[] baseKey=new byte[]{(byte)0xFF,(byte)0xFF,(byte)0xFF,(byte)0xFF,(byte)0xFF,(byte)0xFF,(byte) 0xff, 0x07, (byte) 0x80, (byte) 0x69,(byte)0xFF,(byte)0xFF,(byte)0xFF,(byte)0xFF,(byte)0xFF,(byte)0xFF};//hexStr2Bytes("ffffffffffffff078069ffffffffffff")
-    public static String baseKeyB ="ffffffffffff";
-    public static String commdKeyB ="7f078869";
+    public static byte[] commdB = new byte[]{(byte) 0x7f, 0x07, (byte) 0x88, (byte) 0x69};//hexStr2Bytes("7f078869");
+    public static byte[] baseKey = new byte[]{(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xff, 0x07, (byte) 0x80, (byte) 0x69, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF};//hexStr2Bytes("ffffffffffffff078069ffffffffffff")
+    public static String baseKeyB = "ffffffffffff";
+    public static String commdKeyB = "7f078869";
 
     public static String bytes2HexStr(byte[] bytes) {
         StringBuilder sb = new StringBuilder();
@@ -48,6 +52,7 @@ public class ByteUtil {
         }
         return sb.toString();
     }
+
     public static String bytes2HexStr_2(byte[] bytes) {
         BigInteger bigInteger = new BigInteger(1, bytes);
         return bigInteger.toString(16);
@@ -64,7 +69,7 @@ public class ByteUtil {
 
     //2位==1字符 ffff->0xff,0xff
     public static byte[] hexStr2Bytes(String hexStr) {
-        if (TextUtils.isEmpty(hexStr)){
+        if (TextUtils.isEmpty(hexStr)) {
             return new byte[16];//字节
         }
         hexStr = hexStr.toLowerCase();
@@ -115,7 +120,7 @@ public class ByteUtil {
 //                System.out.println(b);//10进制
             hex += byteToHex(b);//转16进制
         }
-        LogUtil.e("hex源"+hex.length(),hex);//一定是双数
+        LogUtil.e("hex源" + hex.length(), hex);//一定是双数
         for (int i = hex.length(); i < 32; i += 2) {
             hex += "20";//20 是空 补充占位
         }
@@ -126,6 +131,26 @@ public class ByteUtil {
 //        hex32位  [16]byte
         return hexStr2Bytes(hex);
     }
+    //6秘钥转12位hexStr
+    public static String psw2HexStr(String data) {
+        //utf-8 一字3位 GBK一字2位
+        String hex = "";
+        byte[] gbd = data.getBytes(Charset.forName("GBK"));
+        for (byte b : gbd) {
+//         b//10进制
+            hex += byteToHex(b);
+        }
+        LogUtil.e("pswHex" + hex.length(), hex);//一定是双数
+        for (int i = hex.length(); i < 12; i+=2) {
+            hex += "00";// 补充占位
+        }
+        if (hex.length() > 12) {
+            hex = hex.substring(0, 12);
+        }
+//        hex12位  [6]byte 秘钥
+        return hex;
+    }
+
     //hex byte ->GBK字符
     public static String Byte2String(byte[] gdata) {
 //            byte[] gdata = {-43, -3};
@@ -184,7 +209,8 @@ public class ByteUtil {
         }
         return bt4;
     }
-//hexStr转10进制字符 2位1字符
+
+    //hexStr转10进制字符 2位1字符
     public static String hexStr2Str(String hexStr) {
         String vi = "0123456789ABC DEF".trim();
         char[] array = hexStr.toCharArray();
@@ -341,18 +367,37 @@ public class ByteUtil {
 
     /**
      * 时间戳转换成日期格式字符串
+     *
      * @param seconds 精确到秒的字符串
      * @return
      */
     public static String timeStamp2Date(String seconds) {
-        if (TextUtils.isEmpty(seconds)){
-            return seconds;
-        }
-        if(seconds == null || seconds.isEmpty() || seconds.equals("null")){
-            return "";
-        }
-           String format = "yyyy-MM-dd HH:mm:ss";
+        String format = "yyyy-MM-dd HH:mm:ss";
         SimpleDateFormat sdf = new SimpleDateFormat(format);
-        return sdf.format(new Date(Long.valueOf(seconds/*+"000"*/)));
+
+        if (seconds == null || seconds.isEmpty() || seconds.equals("null")) {
+            return sdf.format(new Date(0000000000000));
+        }
+        if (seconds.length() == 10) {
+            seconds +="000";
+        }
+        if (seconds.length() == 13&&isNumeric(seconds)) {
+            return sdf.format(new Date(Long.valueOf(seconds/*+"000"*/)));
+        } else {
+            return sdf.format(new Date(0000000000000));
+        }
+    }
+    /**
+     * 判断是否为数字(正负数都行)
+     * @param str 需要验证的字符串 len长度
+     * @return
+     */
+    public static boolean isNumeric(String str){
+        Pattern pattern = compile("^\\d{13}$");//"^\d{5}$"//^[-\\+]?[\\d]*$
+        Matcher isNum = pattern.matcher(str);
+        if( !isNum.matches() ){
+            return false;
+        }
+        return true;
     }
 }

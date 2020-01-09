@@ -1,4 +1,4 @@
-package com.apicloud.myReadCard;
+package com.apicloud.myReadCard.utils;
 
 public class Constant {
 

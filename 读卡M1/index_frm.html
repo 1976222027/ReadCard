@@ -35,17 +35,8 @@
 	    	},function(ret,err){
 	    	pauseJS();
 	    	});
-	   //********************add********************
-	    api.addEventListener({
-        name:'appintent'
-        },function(ret,err){
-        var appParam = ret.appParam;
-        M1Card.intentJS({"param",appParam
-	        },function(ret, err){
-	        });
-         });
-
- }
+	    	//********************add********************
+	    }
 
 	 //********************安卓生命周期********************
 	function resumeJS(){
@@ -96,7 +87,8 @@
 		function checkPos(){
 	        M1Card.checkPos({
 	        },function(ret, err){
-	        	<!--alert(JSON.stringify(ret));-->
+	        	alert(JSON.stringify(ret));
+
 	        });
 		}
 		//开卡2  B
@@ -112,7 +104,7 @@
 		function writeCard(){
 	        M1Card.writeCard({
 	        sector:'13',
-	        data:'0000001',
+	        data:'0000002',
 	        key:'fs6pv5'
 	        },function(ret, err){
 	        	alert(JSON.stringify(ret));

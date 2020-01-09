@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/ReadCard.iml" filepath="$PROJECT_DIR$/ReadCard.iml" />
+      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/moduleReadCard/moduleReadCard.iml" filepath="$PROJECT_DIR$/moduleReadCard/moduleReadCard.iml" />
+      <module fileurl="file://$PROJECT_DIR$/myReadCard/myReadCard.iml" filepath="$PROJECT_DIR$/myReadCard/myReadCard.iml" />
+      <module fileurl="file://$PROJECT_DIR$/nfc/nfc.iml" filepath="$PROJECT_DIR$/nfc/nfc.iml" />
+    </modules>
+  </component>
+</project>

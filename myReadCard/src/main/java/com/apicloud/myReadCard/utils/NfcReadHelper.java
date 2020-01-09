@@ -1,12 +1,9 @@
-package com.apicloud.myReadCard.ka;
+package com.apicloud.myReadCard.utils;
 
 import android.content.Intent;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
 import android.nfc.tech.MifareClassic;
-
-import com.apicloud.myReadCard.utils.ByteUtil;
-import com.apicloud.myReadCard.utils.LogUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -78,10 +75,10 @@ public class NfcReadHelper {
      * @param type     0读卡  1写卡 2开卡 3销卡
      * @param datas    写卡数据
      * @param passWord
-     * @param block
+     * @param sector
      * @param callback
      */
-    public void getAllData(final int type, final String datas, final String passWord, final int block,final NFCCallback callback) {
+    public void getAllData(final int type, final String datas, final String passWord, final int sector,final NFCCallback callback) {
         final byte[] keyByte = ByteUtil.hexStr2Bytes(passWord);
         new Thread(new Runnable() {
             @Override
@@ -97,7 +94,7 @@ public class NfcReadHelper {
                         LogUtil.e("读卡" + type, "扇区数量 ===" + count);
                         //用于判断时候有内容读取出来
                         boolean flag = false;
-                        int i = block;//扇区
+                        int i = sector;//扇区
                         List<String> list = new ArrayList<>();
                         //验证扇区密码，否则会报错（链接失败错误）
                         boolean isOpen = false;

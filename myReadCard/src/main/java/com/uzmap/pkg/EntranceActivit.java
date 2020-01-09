@@ -1,57 +1,60 @@
-package com.apicloud.hanchao;
-
+package com.uzmap.pkg;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
-import android.os.RemoteException;
-import android.os.SystemProperties;
-import android.util.Log;
+import android.view.KeyEvent;
 import android.webkit.ConsoleMessage;
-
-import com.apicloud.myReadCard.Constant;
-import com.apicloud.myReadCard.NFCInstans;
-import com.apicloud.myReadCard.utils.LogUtil;
-import com.sunmi.pay.hardware.aidlv2.AidlConstantsV2;
-import com.sunmi.pay.hardware.aidlv2.readcard.CheckCardCallbackV2;
 import com.uzmap.pkg.openapi.IncPackage;
 import com.uzmap.pkg.openapi.WebViewProvider;
 import com.uzmap.pkg.uzcore.UZAppActivity;
 import com.uzmap.pkg.uzcore.uzmodule.UZModuleContext;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import sunmi.paylib.SunmiPayKernel;
-
-public final class HomeActivity extends UZAppActivity {
+public final class EntranceActivit extends UZAppActivity {
     static String a = "Decompile Is A Stupid Behavior";
-    public static HomeActivity instans;
+    public static EntranceActivit instans;
+    private NFCInstans nfcInstans;
 
-    public HomeActivity() {
+    public EntranceActivit() {
     }
 
-    // Intent 接口
-    private NFCInstans nfcInstans;
-    public void getNFCTagListener(NFCInstans getTagListener) {
+    public void getActivityListener(NFCInstans getTagListener) {
         this.nfcInstans = getTagListener;
     }
+
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        nfcInstans.getIntent(intent);//接口
+        this.nfcInstans.getIntent(intent);
     }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+//        this.nfcInstans.getKeyEvent(event);
+        return super.dispatchKeyEvent(event);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         instans = this;
-
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        nfcInstans.getDestory();
+        this.nfcInstans.getDestory();
     }
-    
+
     @Override
     protected final boolean isFromNativeSDK() {
         return false;
@@ -96,6 +99,5 @@ public final class HomeActivity extends UZAppActivity {
     @Override
     public void onConsoleMessage(ConsoleMessage console) {
     }
-
 }
 

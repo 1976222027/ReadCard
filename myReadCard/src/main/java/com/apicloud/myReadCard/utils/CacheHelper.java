@@ -1,9 +1,7 @@
-package com.apicloud.myReadCard;
+package com.apicloud.myReadCard.utils;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-
-import com.apicloud.hanchao.MyApplication;
 
 public class CacheHelper {
 

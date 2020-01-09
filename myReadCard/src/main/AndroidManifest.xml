@@ -17,19 +17,10 @@
     <application
         android:allowBackup="true"
         android:supportsRtl="true"
-
         tools:ignore="GoogleAppIndexingWarning">
         <activity
-            android:name="com.apicloud.myReadCard.ka.ReadActivity"
+            android:name=".ReadActivity"
             android:theme="@style/myTransparent" />
-        <activity
-            android:name="com.apicloud.myReadCard.pos.InitPosActivity"
-            android:theme="@style/myTransparent"></activity>
-        <activity
-            android:name="com.apicloud.myReadCard.pos.M1Activity"
-            android:theme="@style/myTransparent"></activity>
-
-
     </application>
 
 </manifest>

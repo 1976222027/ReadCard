@@ -13,7 +13,7 @@ android {
         versionCode Integer.parseInt(project.ANDROID_BUILD_VERSION_CODE)
         versionName project.ANDROID_BUILD_VERSION_NAME
 	    multiDexEnabled true
-        minSdkVersion  17
+        minSdkVersion  19
     }
 
     lintOptions {
@@ -41,4 +41,5 @@ dependencies {
     //5个模块
 //    compile project(':moduleReadCard')
     implementation project(':myReadCard')
+//    implementation(name: 'myReadCard-release', ext: 'aar')
 }
